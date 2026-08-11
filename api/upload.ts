@@ -4,13 +4,14 @@ import { getSession, handleError, requireSameOrigin, sql } from './_lib.js'
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
-    requireSameOrigin(req)
-    const session = await getSession(req)
-    if (!session) throw new Error('UNAUTHORIZED')
+    const requestBody = req.body as HandleUploadBody
+    if (requestBody.type === 'blob.generate-client-token') requireSameOrigin(req)
     const json = await handleUpload({
-      body: req.body as HandleUploadBody,
+      body: requestBody,
       request: new Request(`https://${req.headers.host}${req.url}`, { method: 'POST', headers: req.headers as HeadersInit, body: JSON.stringify(req.body) }),
       onBeforeGenerateToken: async (_pathname, clientPayload) => {
+        const session = await getSession(req)
+        if (!session) throw new Error('UNAUTHORIZED')
         const payload = JSON.parse(clientPayload || '{}') as { jobId?: string; purpose?: string }
         if (!payload.jobId || !['request','before','during','after','document'].includes(payload.purpose || '')) throw new Error('INVALID_INPUT')
         const rows = session.role === 'customer'
