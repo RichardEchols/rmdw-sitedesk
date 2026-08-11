@@ -28,8 +28,8 @@ export function OperationalWorkspace({ user, signOut }: { user: SignedInUser; si
       {notice&&<div className="ops-notice"><CheckCircle2 size={16}/>{notice}</div>}
       {!data&&<div className="ops-loading"><LoaderCircle className="spin"/><strong>Loading secure workspace</strong></div>}
       {data&&page==='overview'&&<Overview data={data} user={user} onOpen={(id)=>{setSelected(id);setPage('work')}}/>}
-      {data&&page==='work'&&<Work data={data} user={user} selected={selected} setSelected={setSelected} job={job} property={property} quotes={quotes} updates={updates} media={media} act={act} reload={load}/>} 
-      {data&&page==='settings'&&['office','admin'].includes(user.role)&&<WorkspaceSetup data={data} user={user} act={act}/>} 
+      {data&&page==='work'&&<Work data={data} user={user} selected={selected} setSelected={setSelected} job={job} property={property} quotes={quotes} updates={updates} media={media} act={act} reload={load}/>}
+      {data&&page==='settings'&&['office','admin'].includes(user.role)&&<WorkspaceSetup data={data} user={user} act={act}/>}
     </main>
   </div>
 }
