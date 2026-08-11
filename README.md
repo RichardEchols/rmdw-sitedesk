@@ -1,32 +1,46 @@
-# React + TypeScript + Vite
+# RMDW SiteDesk
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+SiteDesk is a multi-tenant commercial property maintenance workspace for customer intake, office dispatch, field proof, quote approval, and invoice-ready closeout.
 
-Currently, two official plugins are available:
+## Production architecture
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Vite/React frontend with Vercel Functions under `api/`
+- Neon Postgres with an isolated `sd_` schema
+- Database-backed, opaque HttpOnly sessions
+- Tenant-scoped authorization for `customer`, `office`, `technician`, and `admin`
+- Client uploads through Vercel Blob; upload tokens are issued only after server-side job and tenant authorization
+- Passwords derived with Node `scrypt`; sign-in attempts are throttled in Postgres
 
-## React Compiler
+The API fails closed when required services are absent. It does not expose a demo account or claim that an uninitialized deployment is authenticated.
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Environment contract
 
-## Expanding the Oxlint configuration
+Copy `.env.example` to `.env.local` and provide:
 
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
+- `DATABASE_URL` — Neon pooled connection string with TLS
+- `SESSION_SECRET` — long random server-only value used when hashing rate-limit identifiers
+- `SITEDESK_BOOTSTRAP_TOKEN` — private, temporary token for the first administrator setup; remove it after initialization
+- `BLOB_READ_WRITE_TOKEN` — Vercel Blob store token required for media uploads
 
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+Never expose these values through `VITE_` variables or commit them.
+
+## Setup
+
+```bash
+npm install
+npm run db:migrate
+npm run dev
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+With `SITEDESK_BOOTSTRAP_TOKEN` configured, the first visit presents a one-time administrator setup form. After the administrator is created, remove that environment variable and redeploy. Additional users are created by an authenticated administrator through the `create-user` API action.
+
+## Verification
+
+```bash
+npm run typecheck:api
+npm run lint
+npm run build
+npm audit --omit=dev
+```
+
+The schema uses `tenant_id` on every tenant-owned record and composite foreign keys where entities cross-reference one another. Every query that returns or mutates customer, technician, job, quote, update, property, or media data includes the authenticated tenant identifier; customer and technician reads are further constrained to their property or assignment.
