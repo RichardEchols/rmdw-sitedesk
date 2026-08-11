@@ -17,7 +17,8 @@ export function AuthGate({ children }: { children: (user: SignedInUser, signOut:
       if (!status.initialized) return setState(status.bootstrapConfigured ? 'setup' : 'setup-blocked')
       try {
         const session = await api('session')
-        setUser(session.user); setState('ready')
+        if (session.user) { setUser(session.user); setState('ready') }
+        else setState('login')
       } catch { setState('login') }
     } catch { setState('unconfigured') }
   }

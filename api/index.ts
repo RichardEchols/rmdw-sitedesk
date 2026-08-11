@@ -18,8 +18,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     if (req.method === 'POST' && action === 'logout') { await destroySession(req, res); return res.json({ ok: true }) }
 
     const session = await getSession(req)
-    if (!session) throw new Error('UNAUTHORIZED')
     if (req.method === 'GET' && action === 'session') return res.json({ user: session })
+    if (!session) throw new Error('UNAUTHORIZED')
     if (req.method === 'GET' && action === 'workspace') return await workspace(res, session)
 
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed.' })
