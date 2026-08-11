@@ -5,6 +5,7 @@ import {
   ChevronRight,
   ClipboardCheck,
   FileCheck2,
+  LayoutPanelTop,
 } from 'lucide-react'
 import type { View } from '../types'
 
@@ -21,11 +22,13 @@ export function DemoJourney({
   open,
   onToggle,
   onNavigate,
+  onOpenRoleEntry,
 }: {
   active: View
   open: boolean
   onToggle: () => void
   onNavigate: (view: View) => void
+  onOpenRoleEntry: () => void
 }) {
   return (
     <div className={`demo-journey ${open ? 'demo-journey--open' : ''}`}>
@@ -38,6 +41,7 @@ export function DemoJourney({
             </div>
             <span className="demo-journey__fictional">Fictional demo</span>
           </div>
+          <button className="demo-journey__roles" onClick={onOpenRoleEntry}><LayoutPanelTop size={16} /> Choose a role or start over <ChevronRight size={16} /></button>
           <div className="demo-journey__steps">
             {steps.map((step, index) => {
               const Icon = step.icon
@@ -62,7 +66,7 @@ export function DemoJourney({
       )}
       <button className="demo-journey__toggle" onClick={onToggle} aria-expanded={open}>
         <span className="demo-journey__pulse" />
-        Demo journey
+        Navigate demo
         <ChevronRight size={16} />
       </button>
     </div>

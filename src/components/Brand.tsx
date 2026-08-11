@@ -3,7 +3,7 @@ import { ArrowUpRight } from 'lucide-react'
 export function Brand({ compact = false }: { compact?: boolean }) {
   return (
     <div className={`brand ${compact ? 'brand--compact' : ''}`} aria-label="RMDW SiteDesk">
-      <span className="brand__rmdw">RMDW</span>
+      <span className="brand__parent"><img src="/rmdw-logo.png" alt="RMDW" /><span>RMDW</span></span>
       <span className="brand__name">SiteDesk</span>
     </div>
   )
