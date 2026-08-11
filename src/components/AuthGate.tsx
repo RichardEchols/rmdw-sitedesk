@@ -18,14 +18,14 @@ export function AuthGate({ children }: { children: (user: SignedInUser, signOut:
 
   const refresh = async () => {
     try {
-      const session = await api('session')
-      setUser(session.user); setState('ready')
-    } catch {
+      const status = await api('status')
+      if (!status.configured) return setState('unconfigured')
+      if (!status.initialized) return setState(status.bootstrapConfigured ? 'setup' : 'setup-blocked')
       try {
-        const status = await api('status')
-        setState(!status.configured ? 'unconfigured' : status.initialized ? 'login' : status.bootstrapConfigured ? 'setup' : 'setup-blocked')
-      } catch { setState('unconfigured') }
-    }
+        const session = await api('session')
+        setUser(session.user); setState('ready')
+      } catch { setState('login') }
+    } catch { setState('unconfigured') }
   }
 
   useEffect(() => { void refresh() }, [])
