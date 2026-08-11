@@ -8,7 +8,7 @@ SiteDesk is a multi-tenant commercial property maintenance workspace for custome
 - Neon Postgres with an isolated `sd_` schema
 - Database-backed, opaque HttpOnly sessions
 - Tenant-scoped authorization for `customer`, `office`, `technician`, and `admin`
-- Client uploads through Vercel Blob; upload tokens are issued only after server-side job and tenant authorization
+- Private client uploads through Vercel Blob; upload tokens and downloads are issued only after server-side job and tenant authorization
 - Passwords derived with Node `scrypt`; sign-in attempts are throttled in Postgres
 
 The API fails closed when required services are absent. It does not expose a demo account or claim that an uninitialized deployment is authenticated.

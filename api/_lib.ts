@@ -26,7 +26,7 @@ export function hash(value: string) {
 }
 
 export async function hashPassword(password: string) {
-  if (password.length < 12 || password.length > 200) throw new Error('PASSWORD_POLICY')
+  if (password.length < 10 || password.length > 200) throw new Error('PASSWORD_POLICY')
   const salt = randomBytes(16)
   const derived = (await scrypt(password, salt, 64)) as Buffer
   return `scrypt$${salt.toString('hex')}$${derived.toString('hex')}`
@@ -99,7 +99,7 @@ export function handleError(res: VercelResponse, error: unknown) {
     SERVICE_NOT_CONFIGURED: [503, 'SiteDesk secure services are not configured.'],
     UNAUTHORIZED: [401, 'Sign in is required.'], FORBIDDEN: [403, 'You do not have access to this action.'],
     INVALID_ORIGIN: [403, 'Request origin was rejected.'], INVALID_INPUT: [400, 'Please check the submitted fields.'],
-    PASSWORD_POLICY: [400, 'Passwords must be at least 12 characters.'], RATE_LIMITED: [429, 'Too many sign-in attempts. Try again later.'],
+    PASSWORD_POLICY: [400, 'Passwords must be at least 10 characters.'], RATE_LIMITED: [429, 'Too many sign-in attempts. Try again later.'],
     BOOTSTRAP_DISABLED: [403, 'Initial setup is not available.'], ALREADY_BOOTSTRAPPED: [409, 'SiteDesk has already been initialized.'],
   }
   const [status, message] = known[code] || [500, 'SiteDesk could not complete that request.']

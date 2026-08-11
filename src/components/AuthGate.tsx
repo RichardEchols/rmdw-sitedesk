@@ -1,15 +1,9 @@
 import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { ArrowRight, Building2, CheckCircle2, KeyRound, LoaderCircle, LockKeyhole, LogOut, ShieldCheck } from 'lucide-react'
 import { Brand } from './Brand'
+import { api } from '../lib/api'
 
 export type SignedInUser = { tenantId: string; userId: string; role: 'customer' | 'office' | 'technician' | 'admin'; email: string; fullName: string }
-
-async function api(action: string, options?: RequestInit) {
-  const response = await fetch(`/api?action=${action}`, { credentials: 'same-origin', ...options, headers: { 'Content-Type': 'application/json', ...options?.headers } })
-  const data = await response.json().catch(() => ({}))
-  if (!response.ok) throw new Error(data.error || 'SiteDesk could not complete that request.')
-  return data
-}
 
 export function AuthGate({ children }: { children: (user: SignedInUser, signOut: () => Promise<void>) => ReactNode }) {
   const [state, setState] = useState<'loading'|'login'|'setup'|'setup-blocked'|'unconfigured'|'ready'>('loading')
@@ -59,8 +53,8 @@ export function AuthGate({ children }: { children: (user: SignedInUser, signOut:
         {state === 'loading' && <div className="auth-status"><LoaderCircle className="spin"/><h2>Opening your workspace</h2><p>Verifying the secure session.</p></div>}
         {state === 'unconfigured' && <div className="auth-status"><LockKeyhole/><span>CONFIGURATION REQUIRED</span><h2>Secure services are not connected.</h2><p>SiteDesk is installed, but the server database has not been configured for this deployment. No demo sign-in or false account state is shown.</p></div>}
         {state === 'setup-blocked' && <div className="auth-status"><KeyRound/><span>OWNER SETUP REQUIRED</span><h2>The secure workspace is ready to initialize.</h2><p>The Neon schema is connected. The deployment owner must add a private one-time setup token before the first administrator can be created.</p></div>}
-        {state === 'login' && <form className="auth-form" onSubmit={submitLogin}><span>SECURE WORKSPACE</span><h2>Welcome back.</h2><p>Sign in with the account issued by your SiteDesk administrator.</p><label>Work email<input name="email" type="email" autoComplete="username" required /></label><label>Password<input name="password" type="password" autoComplete="current-password" minLength={12} required /></label>{error && <div className="auth-error">{error}</div>}<button className="button button--primary" type="submit">Sign in <ArrowRight size={17}/></button><small><LockKeyhole size={13}/> Encrypted session · Role-based workspace access</small></form>}
-        {state === 'setup' && <form className="auth-form" onSubmit={submitSetup}><span>AUTHORIZED INITIAL SETUP</span><h2>Create the first administrator.</h2><p>This one-time step establishes the company workspace. The deployment owner must supply the private setup token.</p><label>Company<input name="company" required maxLength={120}/></label><label>Your name<input name="name" required maxLength={120}/></label><label>Work email<input name="email" type="email" autoComplete="username" required/></label><label>Password<input name="password" type="password" autoComplete="new-password" minLength={12} required/></label><label>Private setup token<input name="token" type="password" autoComplete="off" required/></label>{error && <div className="auth-error">{error}</div>}<button className="button button--primary" type="submit">Create secure workspace <KeyRound size={17}/></button></form>}
+        {state === 'login' && <form className="auth-form" onSubmit={submitLogin}><span>SECURE WORKSPACE</span><h2>Welcome back.</h2><p>Sign in with the account issued by your SiteDesk administrator.</p><label>Work email<input name="email" type="email" autoComplete="username" required /></label><label>Password<input name="password" type="password" autoComplete="current-password" minLength={10} required /></label>{error && <div className="auth-error">{error}</div>}<button className="button button--primary" type="submit">Sign in <ArrowRight size={17}/></button><small><LockKeyhole size={13}/> Encrypted session · Role-based workspace access</small></form>}
+        {state === 'setup' && <form className="auth-form" onSubmit={submitSetup}><span>AUTHORIZED INITIAL SETUP</span><h2>Create the first administrator.</h2><p>This one-time step establishes the company workspace. The deployment owner must supply the private setup token.</p><label>Company<input name="company" required maxLength={120}/></label><label>Your name<input name="name" required maxLength={120}/></label><label>Work email<input name="email" type="email" autoComplete="username" required/></label><label>Password<input name="password" type="password" autoComplete="new-password" minLength={10} required/></label><label>Private setup token<input name="token" type="password" autoComplete="off" required/></label>{error && <div className="auth-error">{error}</div>}<button className="button button--primary" type="submit">Create secure workspace <KeyRound size={17}/></button></form>}
       </section>
     </main>
   )

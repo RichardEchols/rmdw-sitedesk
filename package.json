@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "typecheck:api": "tsc --noEmit --ignoreConfig --target ES2023 --module NodeNext --moduleResolution NodeNext --types node api/index.ts api/upload.ts api/_lib.ts",
+    "typecheck:api": "tsc --noEmit --ignoreConfig --target ES2023 --module NodeNext --moduleResolution NodeNext --types node api/index.ts api/upload.ts api/media.ts api/_lib.ts",
     "db:migrate": "node scripts/migrate.mjs",
     "preview": "vite preview"
   },

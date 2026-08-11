@@ -13,23 +13,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const initialized = Boolean((await sql()`select 1 from sd_users limit 1`)[0])
       return res.json({ configured: true, initialized, bootstrapConfigured: Boolean(process.env.SITEDESK_BOOTSTRAP_TOKEN), uploadsConfigured: Boolean(process.env.BLOB_READ_WRITE_TOKEN) })
     }
-    if (req.method === 'POST' && action === 'bootstrap') return bootstrap(req, res)
-    if (req.method === 'POST' && action === 'login') return login(req, res)
+    if (req.method === 'POST' && action === 'bootstrap') return await bootstrap(req, res)
+    if (req.method === 'POST' && action === 'login') return await login(req, res)
     if (req.method === 'POST' && action === 'logout') { await destroySession(req, res); return res.json({ ok: true }) }
 
     const session = await getSession(req)
     if (!session) throw new Error('UNAUTHORIZED')
     if (req.method === 'GET' && action === 'session') return res.json({ user: session })
-    if (req.method === 'GET' && action === 'workspace') return workspace(res, session)
+    if (req.method === 'GET' && action === 'workspace') return await workspace(res, session)
 
     if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed.' })
-    if (action === 'create-user') return createUser(req, res, session)
-    if (action === 'create-property') return createProperty(req, res, session)
-    if (action === 'create-job') return createJob(req, res, session)
-    if (action === 'update-job') return updateJob(req, res, session)
-    if (action === 'add-update') return addUpdate(req, res, session)
-    if (action === 'create-quote') return createQuote(req, res, session)
-    if (action === 'approve-quote') return approveQuote(req, res, session)
+    if (action === 'create-user') return await createUser(req, res, session)
+    if (action === 'create-property') return await createProperty(req, res, session)
+    if (action === 'create-job') return await createJob(req, res, session)
+    if (action === 'update-job') return await updateJob(req, res, session)
+    if (action === 'add-update') return await addUpdate(req, res, session)
+    if (action === 'create-quote') return await createQuote(req, res, session)
+    if (action === 'approve-quote') return await approveQuote(req, res, session)
     return res.status(404).json({ error: 'Unknown action.' })
   } catch (error) { return handleError(res, error) }
 }
@@ -65,6 +65,10 @@ async function login(req: VercelRequest, res: VercelResponse) {
 
 async function workspace(res: VercelResponse, s: Awaited<ReturnType<typeof getSession>> & {}) {
   const q = sql()
+  const tenant = (await q`select id,name from sd_tenants where id=${s.tenantId}`)[0]
+  const users = ['office','admin'].includes(s.role)
+    ? await q`select id,email,full_name,role,is_active from sd_users where tenant_id=${s.tenantId} order by full_name`
+    : []
   const properties = s.role === 'customer'
     ? await q`select * from sd_properties where tenant_id=${s.tenantId} and customer_user_id=${s.userId} order by name`
     : await q`select * from sd_properties where tenant_id=${s.tenantId} order by name`
@@ -75,9 +79,11 @@ async function workspace(res: VercelResponse, s: Awaited<ReturnType<typeof getSe
       : await q`select * from sd_jobs where tenant_id=${s.tenantId} order by updated_at desc`
   const jobIds = jobs.map((j) => String(j.id))
   const quotes = jobIds.length ? await q`select * from sd_quotes where tenant_id=${s.tenantId} and job_id = any(${jobIds}) order by created_at desc` : []
+  const quoteIds = quotes.map((quote) => String(quote.id))
+  const quoteLines = quoteIds.length ? await q`select * from sd_quote_lines where tenant_id=${s.tenantId} and quote_id = any(${quoteIds}) order by sort_order` : []
   const updates = jobIds.length ? await q`select * from sd_job_updates where tenant_id=${s.tenantId} and job_id = any(${jobIds}) order by created_at desc limit 200` : []
   const media = jobIds.length ? await q`select * from sd_media where tenant_id=${s.tenantId} and job_id = any(${jobIds}) order by created_at desc` : []
-  return res.json({ user: s, properties, jobs, quotes, updates, media })
+  return res.json({ user: s, tenant, users, properties, jobs, quotes, quoteLines, updates, media })
 }
 
 async function createUser(req: VercelRequest, res: VercelResponse, s: NonNullable<Awaited<ReturnType<typeof getSession>>>) {
