@@ -13,7 +13,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const session = await getSession(req)
         if (!session) throw new Error('UNAUTHORIZED')
         const payload = JSON.parse(clientPayload || '{}') as { jobId?: string; purpose?: string }
-        if (!payload.jobId || !['request','before','during','after','document'].includes(payload.purpose || '')) throw new Error('INVALID_INPUT')
+        const purpose = payload.purpose || ''
+        if (!payload.jobId || !['request','before','during','after','document'].includes(purpose)) throw new Error('INVALID_INPUT')
+        // Restrict which upload purposes each role may use: customers attach a
+        // request photo; technicians attach field proof; office/admin may attach
+        // any purpose (including documents).
+        const roleAllowed = session.role === 'customer' ? purpose === 'request'
+          : session.role === 'technician' ? ['before','during','after','document'].includes(purpose)
+          : true
+        if (!roleAllowed) throw new Error('FORBIDDEN')
         const rows = session.role === 'customer'
           ? await sql()`select j.id from sd_jobs j join sd_properties p on p.id=j.property_id and p.tenant_id=j.tenant_id where j.id=${payload.jobId} and j.tenant_id=${session.tenantId} and p.customer_user_id=${session.userId}`
           : session.role === 'technician'

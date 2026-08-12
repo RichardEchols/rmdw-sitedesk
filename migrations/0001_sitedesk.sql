@@ -26,7 +26,10 @@ CREATE TABLE IF NOT EXISTS sd_users (
   UNIQUE (tenant_id, id),
   UNIQUE (tenant_id, email)
 );
-CREATE UNIQUE INDEX IF NOT EXISTS uq_sd_users_email_ci ON sd_users (lower(email));
+-- Emails are unique per tenant (case-insensitive), never globally across tenants.
+-- Drop any legacy global index first so a re-run converges on the scoped one.
+DROP INDEX IF EXISTS uq_sd_users_email_ci;
+CREATE UNIQUE INDEX IF NOT EXISTS uq_sd_users_email_ci ON sd_users (tenant_id, lower(email));
 CREATE INDEX IF NOT EXISTS idx_sd_users_tenant_role ON sd_users (tenant_id, role);
 
 CREATE TABLE IF NOT EXISTS sd_sessions (

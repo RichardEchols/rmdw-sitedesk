@@ -48,6 +48,14 @@ export function requireSameOrigin(req: VercelRequest) {
   if (new URL(origin).host !== host) throw new Error('INVALID_ORIGIN')
 }
 
+// Normalize a Postgres unique-violation on the per-tenant email index into a
+// friendly, user-facing error instead of a generic 500.
+export function guardDuplicateEmail(error: unknown) {
+  const message = error instanceof Error ? error.message : ''
+  if (/unique constraint "uq_sd_users_email_ci"/.test(message)) throw new Error('DUPLICATE_EMAIL')
+  throw error
+}
+
 export async function getSession(req: VercelRequest): Promise<Session | null> {
   const raw = parseCookie(req.headers.cookie || '')[COOKIE]
   if (!raw) return null
@@ -101,6 +109,7 @@ export function handleError(res: VercelResponse, error: unknown) {
     INVALID_ORIGIN: [403, 'Request origin was rejected.'], INVALID_INPUT: [400, 'Please check the submitted fields.'],
     PASSWORD_POLICY: [400, 'Passwords must be at least 10 characters.'], RATE_LIMITED: [429, 'Too many sign-in attempts. Try again later.'],
     BOOTSTRAP_DISABLED: [403, 'Initial setup is not available.'], ALREADY_BOOTSTRAPPED: [409, 'SiteDesk has already been initialized.'],
+    DUPLICATE_EMAIL: [409, 'That email is already in use in this workspace.'],
   }
   const [status, message] = known[code] || [500, 'SiteDesk could not complete that request.']
   if (status === 500) console.error('[sitedesk-api]', error instanceof Error ? error.message : 'unknown error')

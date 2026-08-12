@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from '@vercel/node'
-import { body, createSession, destroySession, getSession, handleError, hash, hashPassword, requireRole, requireSameOrigin, sql, textField, verifyPassword } from './_lib.js'
+import { body, createSession, destroySession, getSession, guardDuplicateEmail, handleError, hash, hashPassword, requireRole, requireSameOrigin, sql, textField, verifyPassword, type Session } from './_lib.js'
 
 const allowedStatuses = ['requested','triaged','scheduled','in_progress','awaiting_approval','completed','invoice_ready','cancelled']
 
@@ -43,8 +43,11 @@ async function bootstrap(req: VercelRequest, res: VercelResponse) {
   const email = textField(input, 'email', 254).toLowerCase(), passwordHash = await hashPassword(textField(input, 'password', 200))
   const slug = company.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 50) || 'workspace'
   const tenant = (await sql()`insert into sd_tenants (name, slug) values (${company}, ${slug}) returning id`)[0]
-  const user = (await sql()`insert into sd_users (tenant_id,email,full_name,password_hash,role) values (${tenant.id},${email},${name},${passwordHash},'admin') returning id`)[0]
-  await createSession(res, String(tenant.id), String(user.id))
+  let user: Record<string, unknown> | undefined
+  try {
+    user = (await sql()`insert into sd_users (tenant_id,email,full_name,password_hash,role) values (${tenant.id},${email},${name},${passwordHash},'admin') returning id`)[0]
+  } catch (error) { guardDuplicateEmail(error) }
+  await createSession(res, String(tenant.id), String(user!.id))
   return res.status(201).json({ ok: true })
 }
 
@@ -63,7 +66,7 @@ async function login(req: VercelRequest, res: VercelResponse) {
   return res.json({ ok: true })
 }
 
-async function workspace(res: VercelResponse, s: Awaited<ReturnType<typeof getSession>> & {}) {
+async function workspace(res: VercelResponse, s: Session) {
   const q = sql()
   const tenant = (await q`select id,name from sd_tenants where id=${s.tenantId}`)[0]
   const users = ['office','admin'].includes(s.role)
@@ -90,8 +93,10 @@ async function createUser(req: VercelRequest, res: VercelResponse, s: NonNullabl
   requireRole(s, ['admin']); const input=body(req), role=textField(input,'role',30)
   if (!['customer','office','technician','admin'].includes(role)) throw new Error('INVALID_INPUT')
   const email=textField(input,'email',254).toLowerCase(), name=textField(input,'name',120), passwordHash=await hashPassword(textField(input,'password',200))
-  const row=(await sql()`insert into sd_users (tenant_id,email,full_name,password_hash,role) values (${s.tenantId},${email},${name},${passwordHash},${role}) returning id,email,full_name,role`)[0]
-  return res.status(201).json({ user: row })
+  try {
+    const row=(await sql()`insert into sd_users (tenant_id,email,full_name,password_hash,role) values (${s.tenantId},${email},${name},${passwordHash},${role}) returning id,email,full_name,role`)[0]
+    return res.status(201).json({ user: row })
+  } catch (error) { guardDuplicateEmail(error) }
 }
 
 async function createProperty(req: VercelRequest,res:VercelResponse,s:NonNullable<Awaited<ReturnType<typeof getSession>>>) {
